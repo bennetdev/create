@@ -60,7 +60,7 @@ class Lexer:
 
         token = None
         # if combined token
-        if self.current_char + self._peek() in TYPES:
+        if self.current_char + self._peek() in TYPES and not self.current_char.isalpha():
             last_char = self.current_char
             self._next_char()
             combined_char = last_char + self.current_char

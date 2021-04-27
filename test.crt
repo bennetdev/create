@@ -1,23 +1,15 @@
-var b = 3
-var a = 5
-var[] array = [1, 2, 3, 4]
-a *= b
-a++
+var numberloop = int(input("Welche Nummer? "))
 
+var lastnumber = 0
+var number = 1
+var newnumber = 0
 
-each el in array {
-    print(el)
-}
 
 var counter = 0
-
-repeat a {
-    a = a + 1
-    array = [1, 2, 3]
+while counter < numberloop {
+    newnumber = lastnumber + number
+    lastnumber = number
+    number = newnumber
+    counter++
 }
-while b < a{
-    b = b + 1
-    counter = counter + 1
-    print(min(12, 21) , "test")
-}
-print(array)
+print(newnumber)
