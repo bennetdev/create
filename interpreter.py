@@ -41,6 +41,9 @@ class Interpreter(NodeVisitor):
     def visit_Num(self, node):
         return node.value
 
+    def visit_CallArray(self, node):
+        return self.GLOBAL_SCOPE[node.name][int(self.visit(node.index))]
+
     def visit_Array(self, node):
         return [self.visit(child) for child in node.children]
 
@@ -67,6 +70,14 @@ class Interpreter(NodeVisitor):
         for i in range(int(self.visit(node.count))):
             for child in node.children:
                 self.visit(child)
+
+    def visit_Each(self, node):
+        iterable = self.visit(node.iterable)
+        for i in iterable:
+            self.GLOBAL_SCOPE[node.iterator.value] = i
+            for child in node.children:
+                self.visit(child)
+        del self.GLOBAL_SCOPE[node.iterator.value]
 
     def visit_String(self, node):
         return node.value

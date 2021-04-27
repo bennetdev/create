@@ -26,6 +26,12 @@ class CallFunction(AST):
         self.parameters = []
 
 
+class CallArray(AST):
+    def __init__(self, name):
+        self.name = name
+        self.index = 0
+
+
 class Program(Statements):
     def __init__(self):
         super().__init__()
@@ -41,6 +47,13 @@ class While(Statements):
     def __init__(self, comparison):
         super().__init__()
         self.comparison = comparison
+
+
+class Each(Statements):
+    def __init__(self, iterator, iterable):
+        super().__init__()
+        self.iterator = iterator
+        self.iterable = iterable
 
 
 class Conditional(AST):
@@ -220,6 +233,8 @@ class Parser:
         elif self.check_token(TokenType.IDENT):
             if self._check_peek(TokenType.OPAREN):
                 node = self.call_function()
+            elif self._check_peek(TokenType.OBRACKET):
+                node = self.call_array()
             else:
                 if self.current_token.text not in self.symbols:
                     self._abort("Referencing variable before assignment: " + self.current_token.text)
@@ -250,6 +265,16 @@ class Parser:
         self._match(TokenType.CPAREN)
         return node
 
+    def call_array(self):
+        node = CallArray(self.current_token.text)
+        self._match(TokenType.IDENT)
+
+        self._match(TokenType.OBRACKET)
+        index = self.expression()
+        self._match(TokenType.CBRACKET)
+        node.index = index
+        return node
+
     def variable(self):
         node = Var(self.current_token)
         self._match(TokenType.IDENT)
@@ -272,127 +297,151 @@ class Parser:
             self.expression()
         return node
 
-    # parse all statements
-    def statement(self):
-        print(self.current_token.type, self.current_token.text, "statement")
-        if self.check_token(TokenType.PRINT):
-            print("STATEMENT-PRINT")
-            self.next_token()
+    def statement_if(self):
+        print("STATEMENT-IF")
+        self.next_token()
+        comparison = self.comparison()
+        node = Conditional()
+        case = If(comparison)
+        node.cases.append(case)
 
-            # print string or expression
-            if self.check_token(TokenType.STRING):
-                self.next_token()
-            else:
-                self.expression()
+        self._match(TokenType.THEN)
+        self.nl()
 
-        elif self.check_token(TokenType.IF):
-            print("STATEMENT-IF")
+        while not self.check_token(TokenType.END):
+            case.children.append(self.statement())
+        self._match(TokenType.END)
+
+        while self._check_peek(TokenType.ELSEIF):
+            self.nl()
             self.next_token()
             comparison = self.comparison()
-            node = Conditional()
-            case = If(comparison)
-            node.cases.append(case)
-
             self._match(TokenType.THEN)
             self.nl()
-
+            case = If(comparison)
+            node.cases.append(case)
             while not self.check_token(TokenType.END):
                 case.children.append(self.statement())
             self._match(TokenType.END)
 
-            while self._check_peek(TokenType.ELSEIF):
-                self.nl()
-                self.next_token()
-                comparison = self.comparison()
-                self._match(TokenType.THEN)
-                self.nl()
-                case = If(comparison)
-                node.cases.append(case)
-                while not self.check_token(TokenType.END):
-                    case.children.append(self.statement())
-                self._match(TokenType.END)
-
-            while self._check_peek(TokenType.ELSE):
-                self.nl()
-                self.next_token()
-                print(self.current_token.text)
-                self._match(TokenType.THEN)
-                self.nl()
-                else_case = If(None)
-                node.else_case = else_case
-                while not self.check_token(TokenType.END):
-                    else_case.children.append(self.statement())
-                self._match(TokenType.END)
-
-        elif self.check_token(TokenType.VAR_ASSIGN):
-            print("STATEMENT-VAR")
+        while self._check_peek(TokenType.ELSE):
+            self.nl()
             self.next_token()
-            if self.check_token(TokenType.OBRACKET):
-                self._match(TokenType.OBRACKET)
-                self._match(TokenType.CBRACKET)
+            print(self.current_token.text)
+            self._match(TokenType.THEN)
+            self.nl()
+            else_case = If(None)
+            node.else_case = else_case
+            while not self.check_token(TokenType.END):
+                else_case.children.append(self.statement())
+            self._match(TokenType.END)
+        return node
 
-            self.symbols.add(self.current_token.text)
+    def statement_assign(self):
+        print("STATEMENT-VAR")
+        self.next_token()
+        if self.check_token(TokenType.OBRACKET):
+            self._match(TokenType.OBRACKET)
+            self._match(TokenType.CBRACKET)
 
+        self.symbols.add(self.current_token.text)
+
+        left = self.variable()
+        token = self.current_token
+        self._match(TokenType.EQ)
+        right = self.expression()
+        node = Assign(left, token, right)
+        return node
+
+    def statement_repeat(self):
+        print("STATEMENT-REPEAT")
+
+        self.next_token()
+        count = self.expression()
+        self._match(TokenType.THEN)
+        node = Repeat(count)
+
+        self.nl()
+
+        while not self.check_token(TokenType.END):
+            node.children.append(self.statement())
+        self._match(TokenType.END)
+        return node
+
+    def statement_each(self):
+        print("STATEMENT-EACH")
+
+        self.next_token()
+        iterator = self.variable()
+        self.symbols.add(iterator.value)
+        self._match(TokenType.IN)
+        iterable = self.primary()
+        self._match(TokenType.THEN)
+        node = Each(iterator, iterable)
+
+        self.nl()
+
+        while not self.check_token(TokenType.END):
+            node.children.append(self.statement())
+        self._match(TokenType.END)
+        return node
+
+    def statement_while(self):
+        print("STATEMENT-WHILE")
+
+        self.next_token()
+        comparison = self.comparison()
+        node = While(comparison)
+
+        self._match(TokenType.THEN)
+        self.nl()
+        while not self.check_token(TokenType.END):
+            node.children.append(self.statement())
+        self._match(TokenType.END)
+        return node
+
+    def statement_ident(self):
+        if self.peek_token.type in {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ,
+                                    TokenType.EQ, TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
+            print("STATEMENT-IDENT")
             left = self.variable()
             token = self.current_token
-            self._match(TokenType.EQ)
-            right = self.expression()
+            if self.current_token.type in {TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
+                self._match_set(
+                    {TokenType.PLUSPLUS, TokenType.MINUSMINUS})
+                right = None
+            else:
+                self._match_set(
+                    {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ, TokenType.EQ,
+                     TokenType.PLUSPLUS, TokenType.MINUSMINUS})
+                right = self.expression()
+
             node = Assign(left, token, right)
+        elif self._check_peek(TokenType.OPAREN):
+            print("STATEMENT-Function")
+            node = self.call_function()
+        return node
 
-        elif self.check_token(TokenType.INPUT):
-            print("STATEMENT-INPUT")
+    # parse all statements
+    def statement(self):
+        print(self.current_token.type, self.current_token.text, "statement")
+        if self.check_token(TokenType.IF):
+            node = self.statement_if()
 
-            self.next_token()
-            self.symbols.add(self.current_token.text)
-            self._match(TokenType.IDENT)
+        elif self.check_token(TokenType.VAR_ASSIGN):
+            node = self.statement_assign()
 
         elif self.check_token(TokenType.REPEAT):
-            print("STATEMENT-REPEAT")
-
-            self.next_token()
-            count = self.expression()
-            self._match(TokenType.THEN)
-            node = Repeat(count)
-
-            self.nl()
-
-            while not self.check_token(TokenType.END):
-                node.children.append(self.statement())
-            self._match(TokenType.END)
+            node = self.statement_repeat()
 
         elif self.check_token(TokenType.WHILE):
-            print("STATEMENT-WHILE")
+            node = self.statement_while()
 
-            self.next_token()
-            comparison = self.comparison()
-            node = While(comparison)
-
-            self._match(TokenType.THEN)
-            self.nl()
-            while not self.check_token(TokenType.END):
-                node.children.append(self.statement())
-            self._match(TokenType.END)
+        elif self.check_token(TokenType.EACH):
+            node = self.statement_each()
 
         elif self.check_token(TokenType.IDENT):
-            if self.peek_token.type in {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ,
-                                        TokenType.EQ, TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
-                print("STATEMENT-IDENT")
-                left = self.variable()
-                token = self.current_token
-                if self.current_token.type in {TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
-                    self._match_set(
-                        {TokenType.PLUSPLUS, TokenType.MINUSMINUS})
-                    right = None
-                else:
-                    self._match_set(
-                        {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ, TokenType.EQ,
-                         TokenType.PLUSPLUS, TokenType.MINUSMINUS})
-                    right = self.expression()
-
-                node = Assign(left, token, right)
-            elif self._check_peek(TokenType.OPAREN):
-                print("STATEMENT-Function")
-                node = self.call_function()
+            node = self.statement_ident()
         else:
             self._abort("Invalid statement at " + self.current_token.text + " (" + self.current_token.type.name + ")")
         self.nl()

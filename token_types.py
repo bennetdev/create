@@ -7,9 +7,7 @@ class TokenType(enum.Enum):
     NUMBER = "NUMBER"
     IDENT = "IDENT"
     STRING = "STRING"
-    # Keywords.
-    PRINT = "PRINT"
-    INPUT = "INPUT"
+    # Keywords
     VAR_ASSIGN = "var"
     IF = "if"
     ELSE = "else"
@@ -18,6 +16,8 @@ class TokenType(enum.Enum):
     END = "}"
     WHILE = "while"
     REPEAT = "repeat"
+    EACH = "each"
+    IN = "in"
     # Operators.
     EQ = "="
     PLUS = "+"
