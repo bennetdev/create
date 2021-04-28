@@ -1,17 +1,15 @@
 program ::= {statement}
 statement ::= "PRINT" (expression | string) nl
-    | "IF" comparison "THEN" nl {statement} "ENDIF" nl
-    | "WHILE" comparison "{" nl {statement} "}" nl
-    | "LABEL" ident nl
-    | "GOTO" ident nl
-    | "LET" ident "=" expression nl
-    | "INPUT" ident nl
+    | "if" comparison "{" nl {statement} "}" nl
+    | "while" comparison "{" nl {statement} "}" nl
+    | "var" ident "=" expression nl
     | "repeat" ident "{" nl {expression} "}" nl
-    | function"(" {variables} ")" nl
+    | "func" ident "(" {variables} ")" nl "{" nl {statements} "}"
+    | ident.ident"(" {arguments} ")"
 comparison ::= expression (("==" | "!=" | ">" | ">=" | "<" | "<=") expression)+
 expression ::= term {( "-" | "+" ) term}
 term ::= unary {( "/" | "*" ) unary} | string
 unary ::= ["+" | "-"] primary
 primary ::= number | ident | "(" {expression} ")"
-ident ::= variable | function
+ident ::= variable | function | method
 nl ::= '\n'+

@@ -20,6 +20,20 @@ class Statements(AST):
         self.children = []
 
 
+class CallMethod(AST):
+    def __init__(self, object_called, method_called):
+        self.object_called = object_called
+        self.method_called = method_called
+
+
+class DefineFunction(Statements):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.parameters = []
+        self.return_statement = None
+
+
 class CallFunction(AST):
     def __init__(self, name):
         self.name = name
@@ -109,8 +123,6 @@ class Parser:
         self.lexer = lexer
 
         self.symbols = set()
-        self.labels_declared = set()
-        self.labels_gotoed = set()
 
         self.tokens = []
         self.tree = []
@@ -235,6 +247,8 @@ class Parser:
                 node = self.call_function()
             elif self._check_peek(TokenType.OBRACKET):
                 node = self.call_array()
+            elif self._check_peek(TokenType.DOT):
+                node = self.call_method()
             else:
                 if self.current_token.text not in self.symbols:
                     self._abort("Referencing variable before assignment: " + self.current_token.text)
@@ -263,6 +277,13 @@ class Parser:
             if not self.check_token(TokenType.CPAREN):
                 self._match(TokenType.SEPERATOR)
         self._match(TokenType.CPAREN)
+        return node
+
+    def call_method(self):
+        left = self.variable()
+        self._match(TokenType.DOT)
+        right = self.call_function()
+        node = CallMethod(left, right)
         return node
 
     def call_array(self):
@@ -400,6 +421,35 @@ class Parser:
         self._match(TokenType.END)
         return node
 
+    def statement_function(self):
+        print("STATEMENT-FUNCTION")
+
+        self.next_token()
+        name = self.current_token
+        self._match(TokenType.IDENT)
+        self._match(TokenType.OPAREN)
+        node = DefineFunction(name)
+
+        while not self.check_token(TokenType.CPAREN):
+            node.parameters.append(self.current_token)
+            self.symbols.add(self.current_token.text)
+            self.next_token()
+            if not self.check_token(TokenType.CPAREN):
+                self._match(TokenType.SEPERATOR)
+        self._match(TokenType.CPAREN)
+        self._match(TokenType.THEN)
+        self.nl()
+        while not self.check_token(TokenType.END):
+            node.children.append(self.statement())
+            if self.check_token(TokenType.RETURN):
+                self._match(TokenType.RETURN)
+                value = self.expression()
+                self._match(TokenType.NEWLINE)
+                node.return_statement = value
+                break
+        self._match(TokenType.END)
+        return node
+
     def statement_ident(self):
         if self.peek_token.type in {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ,
                                     TokenType.EQ, TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
@@ -415,8 +465,12 @@ class Parser:
                     {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ, TokenType.EQ,
                      TokenType.PLUSPLUS, TokenType.MINUSMINUS})
                 right = self.expression()
-
             node = Assign(left, token, right)
+        elif self._check_peek(TokenType.DOT):
+            left = self.variable()
+            self._match(TokenType.DOT)
+            right = self.call_function()
+            node = CallMethod(left, right)
         elif self._check_peek(TokenType.OPAREN):
             print("STATEMENT-Function")
             node = self.call_function()
@@ -436,10 +490,10 @@ class Parser:
 
         elif self.check_token(TokenType.WHILE):
             node = self.statement_while()
-
         elif self.check_token(TokenType.EACH):
             node = self.statement_each()
-
+        elif self.check_token(TokenType.FUNCTION_DEFINE):
+            node = self.statement_function()
         elif self.check_token(TokenType.IDENT):
             node = self.statement_ident()
         else:

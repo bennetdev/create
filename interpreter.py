@@ -1,4 +1,5 @@
 from token_types import TokenType
+from custom_builtins import builtin_functions
 
 
 class NodeVisitor:
@@ -13,6 +14,8 @@ class NodeVisitor:
 
 class Interpreter(NodeVisitor):
     GLOBAL_SCOPE = {}
+    FUNCTIONS = {}
+    LOCAL_SCOPES = []
     globals()["__builtins__"]["print"]("test")
 
     def __init__(self, parser):
@@ -60,11 +63,31 @@ class Interpreter(NodeVisitor):
                 self.visit(child)
         return condition
 
+    def visit_NoneType(self, node):
+        return None
+
     def visit_CallFunction(self, node):
         arguments = []
         for child in node.parameters:
             arguments.append(self.visit(child))
-        return globals()["__builtins__"][node.name](*arguments)
+        if node.name in globals()["__builtins__"]:
+            return globals()["__builtins__"][node.name](*arguments)
+        elif node.name in builtin_functions:
+            return builtin_functions[node.name](*arguments)
+        else:
+            self.LOCAL_SCOPES.append({})
+            func = self.FUNCTIONS[node.name]
+            for index, parameter in enumerate(func.parameters):
+                self.LOCAL_SCOPES[-1][parameter.text] = arguments[index]
+            statements = func.children
+            for statement in statements:
+                self.visit(statement)
+
+            return_value = self.visit(func.return_statement)
+
+            self.LOCAL_SCOPES.pop(-1)
+
+            return return_value
 
     def visit_Repeat(self, node):
         for i in range(int(self.visit(node.count))):
@@ -74,13 +97,26 @@ class Interpreter(NodeVisitor):
     def visit_Each(self, node):
         iterable = self.visit(node.iterable)
         for i in iterable:
-            self.GLOBAL_SCOPE[node.iterator.value] = i
+            self.get_current_scope()[node.iterator.value] = i
             for child in node.children:
                 self.visit(child)
-        del self.GLOBAL_SCOPE[node.iterator.value]
+        del self.get_current_scope()[node.iterator.value]
 
     def visit_String(self, node):
         return node.value
+
+    def visit_CallMethod(self, node):
+        object_called = node.object_called
+        method_called = node.method_called
+
+        arguments = []
+        for child in method_called.parameters:
+            arguments.append(self.visit(child))
+
+        return getattr(self.get_current_scope()[object_called.token.text], method_called.name)(*arguments)
+
+    def visit_DefineFunction(self, node):
+        self.FUNCTIONS[node.name.text] = node
 
     def visit_While(self, node):
         condition = self.visit(node.comparison)
@@ -106,23 +142,26 @@ class Interpreter(NodeVisitor):
         elif node.op.type == TokenType.MINUSMINUS:
             value = self.visit(node.left) - 1
         elif node.op.type == TokenType.PLUSEQ:
-            value = self.GLOBAL_SCOPE[name] + self.visit(node.right)
+            value = self.get_current_scope()[name] + self.visit(node.right)
         elif node.op.type == TokenType.MINUSEQ:
-            value = self.GLOBAL_SCOPE[name] - self.visit(node.right)
+            value = self.get_current_scope()[name] - self.visit(node.right)
         elif node.op.type == TokenType.ASTERISKEQ:
-            value = self.GLOBAL_SCOPE[name] * self.visit(node.right)
+            value = self.get_current_scope()[name] * self.visit(node.right)
         elif node.op.type == TokenType.SLASHEQ:
-            value = self.GLOBAL_SCOPE[name] / self.visit(node.right)
-        self.GLOBAL_SCOPE[name] = value
+            value = self.get_current_scope()[name] / self.visit(node.right)
+        self.get_current_scope()[name] = value
 
     def visit_Program(self, node):
         for child in node.children:
             self.visit(child)
 
     def visit_Var(self, node):
-        return self.GLOBAL_SCOPE[node.value]
+        return self.get_current_scope()[node.value]
 
     def interpret(self):
         tree = self.parser.parse()
         print(tree)
         return self.visit(tree)
+
+    def get_current_scope(self):
+        return self.GLOBAL_SCOPE if len(self.LOCAL_SCOPES) == 0 else self.LOCAL_SCOPES[-1]

@@ -1,0 +1,15 @@
+var guessed = 0
+var numberToGuess = rdm(1, 10)
+var numberGuessed = -1
+
+while guessed == 0 {
+    numberGuessed = int(input("Gib eine Nummer zwischen 0 und 10 ein! "))
+    if numberGuessed == numberToGuess {
+        guessed = 1
+    }
+    else{
+        print("Leider falsch! ")
+        print("")
+    }
+}
+print("Richtig! Die Nummer war: ", numberToGuess)

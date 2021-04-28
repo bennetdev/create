@@ -10,6 +10,7 @@ class TokenType(enum.Enum):
     # Keywords
     VAR_ASSIGN = "var"
     IF = "if"
+    FUNCTION_DEFINE = "func"
     ELSE = "else"
     ELSEIF = "elseif"
     THEN = "{"
@@ -18,6 +19,7 @@ class TokenType(enum.Enum):
     REPEAT = "repeat"
     EACH = "each"
     IN = "in"
+    RETURN = "return"
     # Operators.
     EQ = "="
     PLUS = "+"
@@ -40,6 +42,7 @@ class TokenType(enum.Enum):
     OPAREN = "("
     CPAREN = ")"
     SEPERATOR = ","
+    DOT = "."
     OBRACKET = "["
     CBRACKET = "]"
     COMMENT = "#"

@@ -4,12 +4,15 @@ var lastnumber = 0
 var number = 1
 var newnumber = 0
 
+var[] lst = []
 
 var counter = 0
-while counter < numberloop {
+repeat numberloop {
     newnumber = lastnumber + number
     lastnumber = number
     number = newnumber
-    counter++
+
+    lst.append(number)
 }
+print(lst)
 print(newnumber)
