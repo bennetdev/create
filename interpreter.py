@@ -16,7 +16,6 @@ class Interpreter(NodeVisitor):
     GLOBAL_SCOPE = {}
     FUNCTIONS = {}
     LOCAL_SCOPES = []
-    globals()["__builtins__"]["print"]("test")
 
     def __init__(self, parser):
         self.parser = parser
@@ -160,7 +159,6 @@ class Interpreter(NodeVisitor):
 
     def interpret(self):
         tree = self.parser.parse()
-        print(tree)
         return self.visit(tree)
 
     def get_current_scope(self):

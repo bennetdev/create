@@ -8,7 +8,6 @@ from interpreter import Interpreter
 # https://ruslanspivak.com/lsbasi-part9/
 
 def main():
-    print("Create Compiler")
 
     if len(sys.argv) != 2:
         sys.exit("Error: Compiler needs source file as argument.")

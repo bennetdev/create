@@ -178,7 +178,7 @@ class Parser:
         return node
 
     def nl(self):
-        print("NEWLINE")
+        #print("NEWLINE")
         self._match(TokenType.NEWLINE)
         while self.check_token(TokenType.NEWLINE):
             self.next_token()
@@ -192,7 +192,7 @@ class Parser:
                                            TokenType.GTEQ}
 
     def expression(self):
-        print("EXPRESSION")
+        #print("EXPRESSION")
         if self.check_token(TokenType.OBRACKET):
             node = Array()
             self.next_token()
@@ -211,7 +211,7 @@ class Parser:
         return node
 
     def term(self):
-        print("TERM")
+        #print("TERM")
         if self.check_token(TokenType.STRING):
             node = self.string()
         else:
@@ -224,7 +224,7 @@ class Parser:
         return node
 
     def unary(self):
-        print("UNARY")
+        #print("UNARY")
 
         token = self.current_token
         if self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
@@ -235,7 +235,7 @@ class Parser:
         return node
 
     def primary(self):
-        print("PRIMARY (" + self.current_token.text + ")")
+        #print("PRIMARY (" + self.current_token.text + ")")
 
         token = self.current_token
 
@@ -302,7 +302,7 @@ class Parser:
         return node
 
     def comparison(self):
-        print("COMPARISON")
+        #print("COMPARISON")
         left = self.expression()
 
         if self.is_comparison_operator():
@@ -319,7 +319,7 @@ class Parser:
         return node
 
     def statement_if(self):
-        print("STATEMENT-IF")
+        #print("STATEMENT-IF")
         self.next_token()
         comparison = self.comparison()
         node = Conditional()
@@ -348,7 +348,7 @@ class Parser:
         while self._check_peek(TokenType.ELSE):
             self.nl()
             self.next_token()
-            print(self.current_token.text)
+            #print(self.current_token.text)
             self._match(TokenType.THEN)
             self.nl()
             else_case = If(None)
@@ -359,7 +359,7 @@ class Parser:
         return node
 
     def statement_assign(self):
-        print("STATEMENT-VAR")
+        #print("STATEMENT-VAR")
         self.next_token()
         if self.check_token(TokenType.OBRACKET):
             self._match(TokenType.OBRACKET)
@@ -375,7 +375,7 @@ class Parser:
         return node
 
     def statement_repeat(self):
-        print("STATEMENT-REPEAT")
+        #print("STATEMENT-REPEAT")
 
         self.next_token()
         count = self.expression()
@@ -390,7 +390,7 @@ class Parser:
         return node
 
     def statement_each(self):
-        print("STATEMENT-EACH")
+        #print("STATEMENT-EACH")
 
         self.next_token()
         iterator = self.variable()
@@ -408,7 +408,7 @@ class Parser:
         return node
 
     def statement_while(self):
-        print("STATEMENT-WHILE")
+        #print("STATEMENT-WHILE")
 
         self.next_token()
         comparison = self.comparison()
@@ -422,7 +422,7 @@ class Parser:
         return node
 
     def statement_function(self):
-        print("STATEMENT-FUNCTION")
+        #print("STATEMENT-FUNCTION")
 
         self.next_token()
         name = self.current_token
@@ -453,7 +453,7 @@ class Parser:
     def statement_ident(self):
         if self.peek_token.type in {TokenType.PLUSEQ, TokenType.MINUSEQ, TokenType.ASTERISKEQ, TokenType.SLASHEQ,
                                     TokenType.EQ, TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
-            print("STATEMENT-IDENT")
+            #print("STATEMENT-IDENT")
             left = self.variable()
             token = self.current_token
             if self.current_token.type in {TokenType.PLUSPLUS, TokenType.MINUSMINUS}:
@@ -472,13 +472,13 @@ class Parser:
             right = self.call_function()
             node = CallMethod(left, right)
         elif self._check_peek(TokenType.OPAREN):
-            print("STATEMENT-Function")
+            #print("STATEMENT-Function")
             node = self.call_function()
         return node
 
     # parse all statements
     def statement(self):
-        print(self.current_token.type, self.current_token.text, "statement")
+        #print(self.current_token.type, self.current_token.text, "statement")
         if self.check_token(TokenType.IF):
             node = self.statement_if()
 
